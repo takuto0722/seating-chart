@@ -1,0 +1,161 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RAKUNO - 設定画面（Firebase対応）</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="container mt-4">
+  <h2>事業所情報</h2>
+
+  <div class="mb-3">
+    <label for="homeName" class="form-label">事業所名</label>
+    <input type="text" id="homeName" class="form-control" placeholder="事業所名を入力">
+  </div>
+
+  <div class="mb-3">
+    <label for="homeAddress" class="form-label">事業所住所</label>
+    <input type="text" id="homeAddress" class="form-control" placeholder="住所を入力">
+  </div>
+
+  <div class="mb-3">
+    <label for="departureTime" class="form-label">出発時刻</label>
+    <input type="time" id="departureTime" class="form-control">
+  </div>
+
+  <h2 class="mt-5">利用者登録</h2>
+  <div class="mb-2">
+    <input type="text" id="userName" class="form-control" placeholder="利用者名">
+  </div>
+  <div class="mb-2">
+    <input type="text" id="userHome" class="form-control" placeholder="自宅住所">
+  </div>
+  <div class="mb-2">
+    <input type="text" id="userSchool" class="form-control" placeholder="学校住所（任意）">
+  </div>
+  <div class="mb-2">
+    <select id="userTransport" class="form-select">
+      <option value="">移動手段を選択</option>
+      <option value="椅子">椅子</option>
+      <option value="車椅子">車椅子</option>
+      <option value="チャイルドシート">チャイルドシート</option>
+    </select>
+  </div>
+  <button class="btn btn-success w-100 mb-4" id="addUserBtn">利用者を保存</button>
+
+  <h2>車両登録</h2>
+  <div class="mb-2">
+    <input type="text" id="carNumber" class="form-control" placeholder="車両番号">
+  </div>
+  <div class="mb-2">
+    <input type="text" id="carModel" class="form-control" placeholder="車種名">
+  </div>
+  <div class="mb-2">
+    <input type="number" id="carSeats" class="form-control" placeholder="椅子の数">
+  </div>
+  <div class="mb-2">
+    <input type="number" id="carWheelchairs" class="form-control" placeholder="車椅子の数">
+  </div>
+  <div class="mb-2">
+    <input type="number" id="carChildSeats" class="form-control" placeholder="チャイルドシートの数">
+  </div>
+  <button class="btn btn-success w-100 mb-4" id="addCarBtn">車両を保存</button>
+
+  <button class="btn btn-primary w-100" id="saveHomeBtn">事業所情報を保存</button>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBU_5FwZru1WnPD2ZVydX6kRk9EHXIAxXw",
+    authDomain: "rakuno-84118.firebaseapp.com",
+    projectId: "rakuno-84118",
+    storageBucket: "rakuno-84118.appspot.com",
+    messagingSenderId: "654251884396",
+    appId: "1:654251884396:web:baa44820fed22960c13d49",
+    measurementId: "G-JSRP91EGHD"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const uid = "test_user"; // 本番では auth.currentUser.uid に置き換える
+
+  // 事業所情報の保存
+  document.getElementById("saveHomeBtn").addEventListener("click", async () => {
+    const homeName = document.getElementById("homeName").value.trim();
+    const homeAddress = document.getElementById("homeAddress").value.trim();
+    const departureTime = document.getElementById("departureTime").value.trim();
+
+    if (!homeName || !homeAddress || !departureTime) {
+      alert("事業所情報をすべて入力してください");
+      return;
+    }
+
+    try {
+      await setDoc(doc(db, "users", uid), {}); // ユーザーのルートドキュメントを作成（空でもOK）
+      await setDoc(doc(db, "users", uid, "homeInfo", "info"), {
+        homeName,
+        homeAddress,
+        departureTime,
+      });
+      alert("事業所情報を保存しました！");
+    } catch (e) {
+      console.error("保存エラー:", e);
+      alert("保存に失敗しました");
+    }
+  });
+
+  // 利用者の追加保存
+  document.getElementById("addUserBtn").addEventListener("click", async () => {
+    const name = document.getElementById("userName").value.trim();
+    const home = document.getElementById("userHome").value.trim();
+    const school = document.getElementById("userSchool").value.trim();
+    const transport = document.getElementById("userTransport").value;
+
+    if (!name || !home || !transport) {
+      alert("利用者の必須項目を入力してください");
+      return;
+    }
+
+    try {
+      await addDoc(collection(db, "users", uid, "users"), {
+        name, home, school, transport
+      });
+      alert("利用者を追加しました！");
+    } catch (e) {
+      console.error("利用者の保存エラー:", e);
+    }
+  });
+
+  // 車両の追加保存
+  document.getElementById("addCarBtn").addEventListener("click", async () => {
+    const number = document.getElementById("carNumber").value.trim();
+    const model = document.getElementById("carModel").value.trim();
+    const seats = parseInt(document.getElementById("carSeats").value) || 0;
+    const wheelchairs = parseInt(document.getElementById("carWheelchairs").value) || 0;
+    const childSeats = parseInt(document.getElementById("carChildSeats").value) || 0;
+
+    if (!number || !model) {
+      alert("車両の必須項目を入力してください");
+      return;
+    }
+
+    try {
+      await addDoc(collection(db, "users", uid, "cars"), {
+        number, model, seats, wheelchairs, childSeats
+      });
+      alert("車両を追加しました！");
+    } catch (e) {
+      console.error("車両の保存エラー:", e);
+    }
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
